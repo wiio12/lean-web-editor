@@ -1,6 +1,6 @@
 # lean-web-editor
 
-This repository contains the code for the leanprover-community fork of the [Lean live editor](https://leanprover-community.github.io/lean-web-editor).
+This repository contains the code for the leanprover-community fork of the [Lean 3 live editor](https://leanprover-community.github.io/lean-web-editor).
 
 You will need to install [nodejs](https://nodejs.org/en/) (which should include npm) to try this out locally.
 
