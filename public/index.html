@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel='stylesheet' href='./index.css' />
   <title>Math Prover</title>
+  <link rel="icon" href="./math_logo.png" type="image/x-icon">
 </head>
 
 <body>
@@ -23,35 +24,35 @@
     <div class="float-container">
       <div class="float-child-left" style="height: 81vh;">
 
-
         <div class="input-section">
           <label class="name_label">Problem Statement</label>
           <textarea class="input-area" id="problem-input" placeholder="Enter the problem statement here"></textarea>
           <div class="bar-float-container">
             <span class="dot", id="problem_status_dot"></span> 
-            <label class='status_text'>idle</label>
+            <label class='status_text' id="problem_status_text">idle</label>
             <button id="problem_statement_button" class="cus_button">Run</button>
-            <select class="bar_select", name="select_problem_statement" id="select" autocomplete="off" required>
-              <option>gpt-3.5-turbo</option>
-              <option>gpt-4</option>
-              <option>llama2-7b</option>
+            <select class="bar_select", name="select_problem_statement" id="problem_select" autocomplete="off" required>
+              <option value="gpt-3.5 | solve">gpt-3.5 | solve</option>
+              <option value="gpt-4 | solve">gpt-4 | solve</option>
+              <option value="llama2-7b | solve">llama2-7b | solve</option>
+              <option value="gpt-3.5 | formalize">gpt-3.5 | formalize</option>
+              <option value="gpt-4 | formalize">gpt-4 | formalize</option>
+              <option value="llama2-7b | formalize">llama2-7b | formalize</option>
             </select>
           </div>
         </div>
-
-
 
         <div class="input-section", style="margin-top: 20px;">
           <label class="name_label">Solution</label>
           <textarea class="input-area" id="solution-input" placeholder="Enter the solution here"></textarea>
           <div class="bar-float-container">
             <span class="dot", id="solution_status_dot"></span> 
-            <label class='status_text'>idle</label>
-            <button id="problem_statement_button" class="cus_button">Run</button>
-            <select class="bar_select", name="select_problem_statement" id="select" autocomplete="off" required>
-              <option>gpt-3.5-turbo</option>
-              <option>gpt-4</option>
-              <option>llama2-7b</option>
+            <label class='status_text' id="solution_status_text">idle</label>
+            <button id="solution_button" class="cus_button">Run</button>
+            <select class="bar_select", name="select_problem_statement" id="solution_select" autocomplete="off" required>
+              <option value="gpt-3.5 | formalize">gpt-3.5 | formalize</option>
+              <option value="gpt-4 | formalize">gpt-4 | formalize</option>
+              <option value="llama2-7b | formalize">llama2-7b | formalize</option>
             </select>
           </div>
         </div>

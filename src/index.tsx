@@ -13,6 +13,10 @@ function leanColorize(text: string): string {
   return colorized.replace(/&nbsp;/g, ' ');
 }
 
+function delay(ms: number) {
+  return new Promise( resolve => setTimeout(resolve, ms) );
+}
+
 interface MessageWidgetProps {
   msg: Message;
 }
@@ -213,6 +217,9 @@ interface PageHeaderProps {
   onLoad: (localFile: string, lastFileName: string) => void;
   clearUrlParam: () => void;
   onChecked: () => void;
+  formalOnClick: (event) => void;
+  modelStatus: string;
+  onSelectChange: (event) => void;
 }
 interface PageHeaderState {
   currentlyRunning: boolean;
@@ -224,7 +231,15 @@ class PageHeader extends React.Component<PageHeaderProps, PageHeaderState> {
     super(props);
     this.state = { currentlyRunning: true };
     this.onFile = this.onFile.bind(this);
+    this.handleChange = this.handleChange.bind(this);
     // this.restart = this.restart.bind(this);
+  }
+
+  handleChange = (event) => {
+    // Handle the select change
+    if (this.props.onSelectChange) {
+      this.props.onSelectChange(event.target.value);
+    }
   }
 
   componentWillMount() {
@@ -266,6 +281,7 @@ class PageHeader extends React.Component<PageHeaderProps, PageHeaderState> {
   render() {
     const isRunning = this.state.currentlyRunning ? 'busy...' : 'ready!';
     const runColor = this.state.currentlyRunning ? 'orange' : 'lightgreen';
+    const modelRunColor = (this.props.modelStatus === "running") ? 'orange' : 'lightgreen';
     // TODO: add input for delayMs
     // checkbox for console spam
     // server.logMessagesToConsole = true;
@@ -275,12 +291,12 @@ class PageHeader extends React.Component<PageHeaderProps, PageHeaderState> {
         <label className='lbl-toggle' tabIndex={0}>
             Lean is {isRunning}
         </label>
-        <span className="dot" id="formal_solver_status" style={{backgroundColor: runColor}}></span> 
+        <span className="dot" id="formal_solver_status" style={{backgroundColor: modelRunColor}}></span> 
         <label className='status_text' tabIndex={0}>
-            idle
+            {this.props.modelStatus}
         </label>
-        <button id="formal_solve_button" className="cus_button">Run</button>
-        <select className="bar_select" name="select_problem_statement" id="select" autoComplete="off" required>
+        <button id="formal_solve_button" className="cus_button" onClick={this.props.formalOnClick}>Run</button>
+        <select className="bar_select" name="select_problem_statement" onChange={this.handleChange} id="select" autoComplete="off" required>
           <option>gpt-3.5-turbo</option>
           <option>gpt-4</option>
           <option>llama2-7b</option>
@@ -553,10 +569,25 @@ interface LeanEditorState {
   size: number;
   checked: boolean;
   lastFileName: string;
+  formalSelectedValue: string; 
+  formalModelStatus: string;
+  problemModelStatus: string;
+  solutionModelStatus: string;
 }
 class LeanEditor extends React.Component<LeanEditorProps, LeanEditorState> {
   model: monaco.editor.IModel;
   editor: monaco.editor.IStandaloneCodeEditor;
+  problem_btn = document.getElementById("problem_statement_button");
+  solution_btn = document.getElementById("solution_button");
+  problem_select = document.getElementById("problem_select") as HTMLSelectElement;
+  solution_select = document.getElementById("solution_select") as HTMLSelectElement;
+  problem_ta = document.getElementById("problem-input") as HTMLTextAreaElement;
+  solution_ta = document.getElementById("solution-input") as HTMLTextAreaElement;
+  problem_dot = document.getElementById("problem_status_dot") as HTMLSpanElement;
+  solution_dot = document.getElementById("solution_status_dot") as HTMLSpanElement;
+  problem_status_text = document.getElementById("problem_status_text") as HTMLLabelElement;
+  solution_status_text = document.getElementById("solution_status_text") as HTMLLabelElement;
+  // formal_btn = document.getElementById("formal_solve_button");
   constructor(props: LeanEditorProps) {
     super(props);
     this.state = {
@@ -566,6 +597,10 @@ class LeanEditor extends React.Component<LeanEditorProps, LeanEditorState> {
       size: null,
       checked: true,
       lastFileName: this.props.file,
+      formalModelStatus: 'idle',
+      formalSelectedValue: 'gpt-3.5-turbo',
+      problemModelStatus: 'idle',
+      solutionModelStatus: 'idle',
     };
     this.model = monaco.editor.createModel(this.props.initialValue, 'lean', monaco.Uri.file(this.props.file));
     this.model.updateOptions({ tabSize: 2 });
@@ -585,7 +620,72 @@ class LeanEditor extends React.Component<LeanEditorProps, LeanEditorState> {
     this.onSave = this.onSave.bind(this);
     this.onLoad = this.onLoad.bind(this);
     this.onChecked = this.onChecked.bind(this);
+    this.formalOnClick = this.formalOnClick.bind(this);
+    this.handleFormalSelectChange = this.handleFormalSelectChange.bind(this);
+    this.problemOnClick = this.problemOnClick.bind(this);
+    this.solutionOnClick = this.solutionOnClick.bind(this);
+
+
+    this.problem_btn.addEventListener('click', this.problemOnClick);
+    this.solution_btn.addEventListener('click', this.solutionOnClick);
   }
+
+  apiRequest(endpoint: string, problem_data: string, solution_data: string, formal_data: string, callback: (out: string) => void) {
+    fetch(`/api/${endpoint}`, {
+        method: 'POST',
+        body: JSON.stringify({ problem_data: problem_data, 
+                               solution_data: solution_data, 
+                               formal_data: formal_data}),
+        headers: {
+            'Accept': 'application/json, text/plain',
+            'Content-Type': 'application/json;charset=UTF-8'
+        }
+    }).then(res => res.json()).then(res => res['out']).then((res) => {
+        callback(res)
+    }).catch((err) => {
+        callback(`-- err: ${err}`)
+    })
+}
+
+  problemOnClick(event: Event) {
+    this.setState({ problemModelStatus: 'running' })
+    this.problem_dot.style.backgroundColor = 'orange';
+    this.problem_status_text.innerHTML = 'running';
+    console.log("problem_clicked " + this.problem_select.value)
+    const endpoint = this.problem_select.value.replace(/\s+/g, '_')
+    if (endpoint.includes("solve")) {
+      this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.solution_ta.value = out});
+    } else if (endpoint.includes("formalize")) {
+      this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.model.setValue(out)});
+    }
+    this.setState({ problemModelStatus: 'idle' })
+    this.problem_dot.style.backgroundColor = 'lightgreen';
+    this.problem_status_text.innerHTML = 'idle';
+  }
+
+  solutionOnClick(event: Event) {
+    this.setState({ solutionModelStatus: 'running' })
+    this.solution_dot.style.backgroundColor = 'orange';
+    this.solution_status_text.innerHTML = 'running';
+    console.log("problem_clicked " + this.problem_select.value)
+    const endpoint = this.problem_select.value.replace(/\s+/g, '_')
+    this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.model.setValue(out)});
+    this.setState({ solutionModelStatus: 'idle' })
+    this.solution_dot.style.backgroundColor = 'lightgreen';
+    this.solution_status_text.innerHTML = 'idle';
+  }
+
+  formalOnClick(event: Event) {
+    this.setState({ formalModelStatus: 'running' })
+    console.log("problem_clicked " + this.problem_select.value)
+    const endpoint = this.problem_select.value.replace(/\s+/g, '_')
+    this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.model.setValue(out)});
+    this.setState({ formalModelStatus: 'idle' })
+  }
+  handleFormalSelectChange = (value) => {
+    this.setState({ formalSelectedValue: value });
+  }
+
   componentDidMount() {
     /* TODO: factor this out */
     const ta = document.createElement('div');
@@ -703,7 +803,8 @@ class LeanEditor extends React.Component<LeanEditorProps, LeanEditorState> {
       <div className='headerContainer'>
         <PageHeader file={this.props.file} url={this.props.initialUrl}
         onSubmit={this.onSubmit} clearUrlParam={this.props.clearUrlParam} status={this.state.status}
-        onSave={this.onSave} onLoad={this.onLoad} onChecked={this.onChecked}/>
+        onSave={this.onSave} onLoad={this.onLoad} onChecked={this.onChecked} formalOnClick={this.formalOnClick} 
+        modelStatus={this.state.formalModelStatus} onSelectChange={this.handleFormalSelectChange}/>
       </div>
       <div className='editorContainer' ref='root'>
         <SplitPane split={this.state.split} defaultSize='60%' allowResize={true}
