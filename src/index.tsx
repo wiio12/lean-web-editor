@@ -270,44 +270,21 @@ class PageHeader extends React.Component<PageHeaderProps, PageHeaderState> {
     // checkbox for console spam
     // server.logMessagesToConsole = true;
     return (
-      <div className='wrap-collapsible'>
-        <input id='collapsible' className='toggle' type='checkbox' defaultChecked={true}
-        onChange={this.props.onChecked}/>
-        <label style={{background: runColor}} htmlFor='collapsible' className='lbl-toggle' tabIndex={0}>
+      <div className='bar-float-container-upper'>
+        <span className="dot" id="lean_status" style={{backgroundColor: runColor}}></span> 
+        <label className='lbl-toggle' tabIndex={0}>
             Lean is {isRunning}
         </label>
-        <div className='collapsible-content'><div className='leanheader'>
-          <a href='https://leanprover.github.io'><img className='logo' src='./lean_logo.svg'
-          style={{height: '5em', margin: '1ex', paddingLeft: '1em', paddingRight: '1em'}}/></a>
-          <div className='headerForms'>
-            <UrlForm url={this.props.url} onSubmit={this.props.onSubmit}
-            clearUrlParam={this.props.clearUrlParam}/>
-            <div style={{float: 'right', margin: '1em'}}>
-              <button onClick={this.props.onSave}>Save</button>
-              {/* <button onClick={this.restart}>Restart server:<br/>will redownload<br/>library.zip!</button> */}
-            </div>
-            <label className='logo' htmlFor='lean_upload'>Load .lean from disk:&nbsp;</label>
-            <input id='lean_upload' type='file' accept='.lean' onChange={this.onFile}/>
-            <div className='leanlink'>
-              <Modal />&nbsp;
-              <span className='logo'>Live in-browser version of the </span>
-              <a href='https://leanprover.github.io/'>Lean theorem prover
-              </a>
-              <span className='logo'>.</span>
-            </div>
-            {this.props.status &&
-              (<span style={{color: 'red'}}>
-                Could not fetch (error: {this.props.status})!&nbsp;
-                {this.props.status.startsWith('TypeError') && (<span>
-                  If you see <a href='https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS'>
-                  cross-origin (CORS) errors
-                </a> in your browser's dev console, try <a href='https://cors-anywhere.herokuapp.com/'>
-                  a CORS proxy
-                </a>, e.g. prepend https://cors-anywhere.herokuapp.com/ to the beginning of your URL.
-                  </span>)}
-              </span>)}
-          </div>
-        </div></div>
+        <span className="dot" id="formal_solver_status" style={{backgroundColor: runColor}}></span> 
+        <label className='status_text' tabIndex={0}>
+            idle
+        </label>
+        <button id="formal_solve_button" className="cus_button">Run</button>
+        <select className="bar_select" name="select_problem_statement" id="select" autoComplete="off" required>
+          <option>gpt-3.5-turbo</option>
+          <option>gpt-4</option>
+          <option>llama2-7b</option>
+        </select>
       </div>
     );
   }
@@ -583,7 +560,7 @@ class LeanEditor extends React.Component<LeanEditorProps, LeanEditorState> {
   constructor(props: LeanEditorProps) {
     super(props);
     this.state = {
-      split: 'vertical',
+      split: 'horizontal',
       url: this.props.initialUrl,
       status: null,
       size: null,
@@ -672,7 +649,8 @@ class LeanEditor extends React.Component<LeanEditorProps, LeanEditorState> {
   }
   determineSplit() {
     const node = findDOMNode(this.refs.root) as HTMLElement;
-    this.setState({split: node.clientHeight > 0.8 * node.clientWidth ? 'horizontal' : 'vertical'});
+    // this.setState({split: node.clientHeight > 0.8 * node.clientWidth ? 'horizontal' : 'vertical'});
+    this.setState({split: 'horizontal'})
     // can we reset the pane "size" when split changes?
   }
   dragFinished(newSize) {
@@ -711,11 +689,12 @@ class LeanEditor extends React.Component<LeanEditorProps, LeanEditorState> {
   render() {
     const infoStyle = {
       height: (this.state.size && (this.state.split === 'horizontal')) ?
-        `calc(95vh - ${this.state.checked ? 115 : 0}px - ${this.state.size}px)` :
+        `calc(81vh - ${this.state.checked ? 115 : 0}px - ${this.state.size}px)` :
         (this.state.split === 'horizontal' ?
         // crude hack to set initial height if horizontal
-          `calc(35vh - ${this.state.checked ? 45 : 0}px)` :
+          `calc(30vh - ${this.state.checked ? 45 : 0}px)` :
           '100%'),
+      // height: '100%',
       width: (this.state.size && (this.state.split === 'vertical')) ?
         `calc(98vw - ${this.state.size}px)` :
         (this.state.split === 'vertical' ? '38vw' : '99%'),
@@ -746,7 +725,9 @@ const defaultValue =
 if s ≠ "" then s ++ ", " else s, "commit ", (lean.githash.to_list.take 12).as_string, ")"]
 
 example (m n : ℕ) : m + n = n + m :=
-by simp [nat.add_comm]`;
+begin
+ simp [nat.add_comm],
+end`;
 
 interface HashParams {
   url: string;
@@ -840,6 +821,6 @@ const metaPromise = fetch(leanJsOpts.libraryMeta)
   registerLeanLanguage(leanJsOpts);
   render(
       <App />,
-      document.getElementById('root'),
+      document.getElementById('lean_sub_editor'),
   );
 });

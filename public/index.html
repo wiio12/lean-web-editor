@@ -1,15 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel='stylesheet' href='./index.css'/>
-    <title>Lean 3 Web Editor</title>
-  </head>
-  <body>
-    <div id='root'></div>
-    <script src='vs/loader.js'></script>
-    <script src='vs/editor/editor.main.nls.js'></script>
-    <script src='vs/editor/editor.main.js'></script>
-  </body>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel='stylesheet' href='./index.css' />
+  <title>Math Prover</title>
+</head>
+
+<body>
+  <!-- <div class='background-img'></div> -->
+  <div id='mainContainer'>
+    <div class="title_container" style="display: flex; flex-direction: row;">
+      <div class="image">
+        <img class="logo_img" src="./math_logo.png">
+      </div>
+      <div class="text">
+        <h1 class="title_text">Math Prover</h1>
+      </div>
+    </div>
+
+    <div class="float-container">
+      <div class="float-child-left" style="height: 81vh;">
+
+
+        <div class="input-section">
+          <label class="name_label">Problem Statement</label>
+          <textarea class="input-area" id="problem-input" placeholder="Enter the problem statement here"></textarea>
+          <div class="bar-float-container">
+            <span class="dot", id="problem_status_dot"></span> 
+            <label class='status_text'>idle</label>
+            <button id="problem_statement_button" class="cus_button">Run</button>
+            <select class="bar_select", name="select_problem_statement" id="select" autocomplete="off" required>
+              <option>gpt-3.5-turbo</option>
+              <option>gpt-4</option>
+              <option>llama2-7b</option>
+            </select>
+          </div>
+        </div>
+
+
+
+        <div class="input-section", style="margin-top: 20px;">
+          <label class="name_label">Solution</label>
+          <textarea class="input-area" id="solution-input" placeholder="Enter the solution here"></textarea>
+          <div class="bar-float-container">
+            <span class="dot", id="solution_status_dot"></span> 
+            <label class='status_text'>idle</label>
+            <button id="problem_statement_button" class="cus_button">Run</button>
+            <select class="bar_select", name="select_problem_statement" id="select" autocomplete="off" required>
+              <option>gpt-3.5-turbo</option>
+              <option>gpt-4</option>
+              <option>llama2-7b</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+
+
+      <div class="float-child-right">
+          <div class="code_editor">
+            <label class="name_label">Formal System</label>
+            <div id="lean_sub_editor" style="margin-top: 10px;"></div>
+          </div>
+      </div>
+    </div>
+  </div>
+
+      <script src='vs/loader.js'></script>
+      <script src='vs/editor/editor.main.nls.js'></script>
+      <script src='vs/editor/editor.main.js'></script>
+</body>
+
 </html>
