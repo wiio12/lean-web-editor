@@ -432,7 +432,7 @@ input[type='checkbox']#collapsible  {
     font-size: 15px;
 }
 
-.cus_button:hover {
+.cus_button:hover:enabled {
     background: #c6c1c1;
 }
 

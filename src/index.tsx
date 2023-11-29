@@ -282,6 +282,7 @@ class PageHeader extends React.Component<PageHeaderProps, PageHeaderState> {
     const isRunning = this.state.currentlyRunning ? 'busy...' : 'ready!';
     const runColor = this.state.currentlyRunning ? 'orange' : 'lightgreen';
     const modelRunColor = (this.props.modelStatus === "running") ? 'orange' : 'lightgreen';
+    const modelRunDisable = (this.props.modelStatus === "running") ? true : false;
     // TODO: add input for delayMs
     // checkbox for console spam
     // server.logMessagesToConsole = true;
@@ -295,7 +296,7 @@ class PageHeader extends React.Component<PageHeaderProps, PageHeaderState> {
         <label className='status_text' tabIndex={0}>
             {this.props.modelStatus}
         </label>
-        <button id="formal_solve_button" className="cus_button" onClick={this.props.formalOnClick}>Run</button>
+        <button id="formal_solve_button" className="cus_button" onClick={this.props.formalOnClick} disabled={modelRunDisable} >Run</button>
         <select className="bar_select" name="select_problem_statement" onChange={this.handleChange} id="select" autoComplete="off" required>
           <option>gpt-3.5-turbo</option>
           <option>gpt-4</option>
@@ -577,8 +578,8 @@ interface LeanEditorState {
 class LeanEditor extends React.Component<LeanEditorProps, LeanEditorState> {
   model: monaco.editor.IModel;
   editor: monaco.editor.IStandaloneCodeEditor;
-  problem_btn = document.getElementById("problem_statement_button");
-  solution_btn = document.getElementById("solution_button");
+  problem_btn = document.getElementById("problem_statement_button") as HTMLButtonElement;
+  solution_btn = document.getElementById("solution_button") as HTMLButtonElement;
   problem_select = document.getElementById("problem_select") as HTMLSelectElement;
   solution_select = document.getElementById("solution_select") as HTMLSelectElement;
   problem_ta = document.getElementById("problem-input") as HTMLTextAreaElement;
@@ -630,7 +631,8 @@ class LeanEditor extends React.Component<LeanEditorProps, LeanEditorState> {
     this.solution_btn.addEventListener('click', this.solutionOnClick);
   }
 
-  apiRequest(endpoint: string, problem_data: string, solution_data: string, formal_data: string, callback: (out: string) => void) {
+  apiRequest(endpoint: string, problem_data: string, solution_data: string, formal_data: string, callback: (out: string) => void, update_state: () => void) {
+    console.log(endpoint);
     fetch(`/api/${endpoint}`, {
         method: 'POST',
         body: JSON.stringify({ problem_data: problem_data, 
@@ -641,47 +643,70 @@ class LeanEditor extends React.Component<LeanEditorProps, LeanEditorState> {
             'Content-Type': 'application/json;charset=UTF-8'
         }
     }).then(res => res.json()).then(res => res['out']).then((res) => {
-        callback(res)
+        callback(res);
+        if (update_state) update_state();
     }).catch((err) => {
-        callback(`-- err: ${err}`)
-    })
-}
+        callback(`-- err: ${err}`);
+        if (update_state) update_state();
+    });
+    
+  }
 
   problemOnClick(event: Event) {
     this.setState({ problemModelStatus: 'running' })
     this.problem_dot.style.backgroundColor = 'orange';
     this.problem_status_text.innerHTML = 'running';
-    console.log("problem_clicked " + this.problem_select.value)
-    const endpoint = this.problem_select.value.replace(/\s+/g, '_')
-    if (endpoint.includes("solve")) {
-      this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.solution_ta.value = out});
-    } else if (endpoint.includes("formalize")) {
-      this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.model.setValue(out)});
+    this.problem_btn.disabled = true;
+
+    const update_state = () => {
+      this.setState({ problemModelStatus: 'idle' })
+      this.problem_dot.style.backgroundColor = 'lightgreen';
+      this.problem_status_text.innerHTML = 'idle';
+      this.problem_btn.disabled = false;
     }
-    this.setState({ problemModelStatus: 'idle' })
-    this.problem_dot.style.backgroundColor = 'lightgreen';
-    this.problem_status_text.innerHTML = 'idle';
+
+    console.log("problem_clicked " + this.problem_select.value)
+    const endpoint = "problem_" + this.problem_select.value.replace(/\s+/g, '_').replace('|', '')
+    if (endpoint.includes("solve")) {
+      this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.solution_ta.value = out}, update_state);
+    } else if (endpoint.includes("formalize")) {
+      this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.model.setValue(out)}, update_state);
+    }
+    
   }
 
   solutionOnClick(event: Event) {
     this.setState({ solutionModelStatus: 'running' })
     this.solution_dot.style.backgroundColor = 'orange';
     this.solution_status_text.innerHTML = 'running';
-    console.log("problem_clicked " + this.problem_select.value)
-    const endpoint = this.problem_select.value.replace(/\s+/g, '_')
-    this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.model.setValue(out)});
-    this.setState({ solutionModelStatus: 'idle' })
-    this.solution_dot.style.backgroundColor = 'lightgreen';
-    this.solution_status_text.innerHTML = 'idle';
+    this.solution_btn.disabled = true;
+
+    const update_state = () => {
+      this.setState({ solutionModelStatus: 'idle' })
+      this.solution_dot.style.backgroundColor = 'lightgreen';
+      this.solution_status_text.innerHTML = 'idle';
+      this.solution_btn.disabled = false;
+    }
+
+    console.log("solution_clicked " + this.solution_select.value)
+    const endpoint = "solution_" + this.solution_select.value.replace(/\s+/g, '_').replace('|', '')
+    this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.model.setValue(out)}, update_state);
+    
   }
 
   formalOnClick(event: Event) {
     this.setState({ formalModelStatus: 'running' })
-    console.log("problem_clicked " + this.problem_select.value)
-    const endpoint = this.problem_select.value.replace(/\s+/g, '_')
-    this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.model.setValue(out)});
-    this.setState({ formalModelStatus: 'idle' })
+
+    const update_state = () => {
+      this.setState({ formalModelStatus: 'idle' })
+    }
+
+    console.log("formal_clicked " + this.state.formalSelectedValue)
+    const endpoint = "formal_" + this.state.formalSelectedValue.replace(/\s+/g, '_').replace('|', '')
+    this.apiRequest(endpoint, this.problem_ta.value, this.solution_ta.value, this.model.getValue(), (out) => {this.model.setValue(out)}, update_state);
+    
   }
+
   handleFormalSelectChange = (value) => {
     this.setState({ formalSelectedValue: value });
   }
